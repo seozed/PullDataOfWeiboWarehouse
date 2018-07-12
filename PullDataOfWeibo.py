@@ -6,9 +6,6 @@ import requests
 import settings
 import json
 import os
-import time
-
-LAST_ACCESS_TIME_OF_CONTENT = 0
 
 
 def fetch_data(url):
@@ -66,25 +63,15 @@ def is_accessed(path):
 
 
 def run():
-    global LAST_ACCESS_TIME_OF_CONTENT
-    while 1:
-        if not is_accessed(settings.OUTPUT_FILE):
-            print("暂无更新需求.", LAST_ACCESS_TIME_OF_CONTENT)
-            time.sleep(settings.SYNC_INTERVAL)
-            continue
+    content_list = []
+    for i in range(1, settings.PULL_COUNT + 1):
+        print("Start asyncing no.{count} article.".format(count=i))
+        data = fetch_data(settings.API_URL)
+        content_list.append(process_data(data))
 
-        content_list = []
-        for i in range(1, settings.PULL_COUNT + 1):
-            print("Start asyncing no.{count} article.".format(count=i))
-            data = fetch_data(settings.API_URL)
-            content_list.append(process_data(data))
-
-        content = "\n".join(content_list)
-        save_to_file(content)
-        print("{count} article have been synced.".format(count=settings.PULL_COUNT))
-        LAST_ACCESS_TIME_OF_CONTENT = int(os.path.getatime(settings.OUTPUT_FILE))
-
-
+    content = "\n".join(content_list)
+    save_to_file(content)
+    print("{count} article have been synced.".format(count=settings.PULL_COUNT))
 
 
 if __name__ == '__main__':
