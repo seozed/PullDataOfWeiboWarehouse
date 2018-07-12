@@ -23,7 +23,8 @@ def process_data(data):
     """
     item = json.loads(data)
     text = item['content']
-    images = "|".join(split_basename(url) for url in item['img_url'])
+    img_filepaths = [os.path.join(os.getcwd(), split_basename(url)) for url in item['img_url']]
+    images = "|".join(img_filepaths)
     content = "{images}&{text}".format(images=images, text=text)
 
     for img_url in item['img_url']:
@@ -37,7 +38,6 @@ def download_image(url):
     filename = os.path.join(os.getcwd(), settings.OUTPUT_DIR, "images", split_basename(url))
     with open(filename, 'wb') as img_file:
         img_file.write(response.content)
-
 
 
 def split_basename(url):
@@ -55,7 +55,7 @@ def save_to_file(content, path=None):
 
 def run():
     content_list = []
-    for i in range(1, settings.PULL_COUNT+1):
+    for i in range(1, settings.PULL_COUNT + 1):
         print("Start asyncing no.{count} article.".format(count=i))
         data = fetch_data(settings.API_URL)
         content_list.append(process_data(data))
