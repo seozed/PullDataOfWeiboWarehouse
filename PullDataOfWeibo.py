@@ -6,6 +6,9 @@ import requests
 import settings
 import json
 import os
+import time
+
+LAST_ACCESS_TIME_OF_CONTENT = 0
 
 
 def fetch_data(url):
@@ -23,9 +26,10 @@ def process_data(data):
     """
     item = json.loads(data)
     text = item['content']
-    img_filepaths = [os.path.join(os.getcwd(), split_basename(url)) for url in item['img_url']]
-    images = "|".join(img_filepaths)
-    content = "{images}&{text}".format(images=images, text=text)
+
+    img_filepaths = [os.path.join(os.getcwd(), "resource", "images", split_basename(url)) for url in item['img_url']]
+    img_path_list = "|".join(img_filepaths)
+    content = "{images}&{text}".format(images=img_path_list, text=text)
 
     for img_url in item['img_url']:
         download_image(img_url)
@@ -49,21 +53,34 @@ def save_to_file(content, path=None):
     if not path:
         path = settings.OUTPUT_FILE
 
-    with open(path, 'w', encoding='utf-8') as file:
+    with open(path, 'w') as file:
         file.write(content + "\n")
 
 
+def is_accessed(path):
+    global LAST_ACCESS_TIME_OF_CONTENT
+    if os.path.getatime(path) != LAST_ACCESS_TIME_OF_CONTENT:
+        LAST_ACCESS_TIME_OF_CONTENT = os.path.getatime(path)
+        return True
+
+    return False
+
+
 def run():
-    content_list = []
-    for i in range(1, settings.PULL_COUNT + 1):
-        print("Start asyncing no.{count} article.".format(count=i))
-        data = fetch_data(settings.API_URL)
-        content_list.append(process_data(data))
+    while 1:
+        if not is_accessed(settings.OUTPUT_FILE):
+            time.sleep(settings.SYNC_INTERVAL)
+            continue
 
-    content = "\n".join(content_list)
-    save_to_file(content)
+        content_list = []
+        for i in range(1, settings.PULL_COUNT + 1):
+            print("Start asyncing no.{count} article.".format(count=i))
+            data = fetch_data(settings.API_URL)
+            content_list.append(process_data(data))
 
-    print("{count} article have been synced.".format(count=settings.PULL_COUNT))
+        content = "\n".join(content_list)
+        save_to_file(content)
+        print("{count} article have been synced.".format(count=settings.PULL_COUNT))
 
 
 if __name__ == '__main__':
