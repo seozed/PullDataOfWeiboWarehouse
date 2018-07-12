@@ -55,20 +55,21 @@ def save_to_file(content, path=None):
 
     with open(path, 'w') as file:
         file.write(content + "\n")
+        file.close()
 
 
 def is_accessed(path):
     global LAST_ACCESS_TIME_OF_CONTENT
-    if os.path.getatime(path) != LAST_ACCESS_TIME_OF_CONTENT:
-        LAST_ACCESS_TIME_OF_CONTENT = os.path.getatime(path)
+    if int(os.path.getatime(path)) != LAST_ACCESS_TIME_OF_CONTENT:
         return True
-
     return False
 
 
 def run():
+    global LAST_ACCESS_TIME_OF_CONTENT
     while 1:
         if not is_accessed(settings.OUTPUT_FILE):
+            print("暂无更新需求.", LAST_ACCESS_TIME_OF_CONTENT)
             time.sleep(settings.SYNC_INTERVAL)
             continue
 
@@ -81,6 +82,9 @@ def run():
         content = "\n".join(content_list)
         save_to_file(content)
         print("{count} article have been synced.".format(count=settings.PULL_COUNT))
+        LAST_ACCESS_TIME_OF_CONTENT = int(os.path.getatime(settings.OUTPUT_FILE))
+
+
 
 
 if __name__ == '__main__':
